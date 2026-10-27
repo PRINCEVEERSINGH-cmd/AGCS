@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>AGCS - Akal Galaxy Convent School | Parent & Admin Portal</title>
+    <meta name="description" content="Official parent portal and school management app for Akal Galaxy Convent School. Track real-time attendance, fees in INR, homework, exam results, and student leave requests with instant push notifications." />
+    
+    <!-- PWA & Mobile Web Capabilities -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1e3a8a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AGCS Portal" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+    <!-- Open Graph & Social Cards -->
+    <meta property="og:title" content="AGCS - Akal Galaxy Convent School | Parent & Admin Portal" />
+    <meta property="og:description" content="Official parent portal and school management app for Akal Galaxy Convent School. Track real-time attendance, fees, homework, and leave applications with instant notifications." />
+    <meta property="og:image" content="/assets/aistudio/Screenshot_2026-10-23_100439_4bf47862.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AGCS - Akal Galaxy Convent School" />
+    <meta name="twitter:description" content="Track student attendance, fees due/paid in INR, homework, and leave approvals." />
+    <meta name="twitter:image" content="/assets/aistudio/Screenshot_2026-10-23_100439_4bf47862.png" />
+
+    <!-- Google Fonts for rich typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-amber-400 selection:text-slate-950 min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register service worker for offline support
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.log('SW registration note:', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "AGCS - Akal Galaxy Convent School",
+  "description": "Smart parent portal and school management app for Akal Galaxy Convent School. Features real-time attendance tracking, student leave application and admin verification, fee payment status in INR, homework diary, exam results, and instant push notifications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
