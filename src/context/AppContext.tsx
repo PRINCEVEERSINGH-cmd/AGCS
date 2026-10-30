@@ -47,9 +47,16 @@ interface AppContextType {
   whatsappAlerts: WhatsAppAlert[];
   unreadNotificationCount: number;
 
-  login: (phone: string, role?: 'parent' | 'admin', name?: string) => Promise<boolean>;
+  login: (phone: string, role?: 'parent' | 'admin', name?: string, admissionNo?: string) => Promise<boolean>;
   logout: () => void;
-  completeOnboarding: (data: { studentName: string; grade: string; section: string; parentName: string; emergencyContact: string }) => void;
+  completeOnboarding: (data: {
+    admissionNo: string;
+    studentName: string;
+    grade: string;
+    section: string;
+    parentName: string;
+    emergencyContact: string;
+  }) => void;
   applyLeave: (leaveData: {
     leaveType: LeaveType;
     startDate: string;
@@ -72,15 +79,19 @@ interface AppContextType {
   deleteTeacherComment: (id: string) => void;
 
   addHomework: (hw: Omit<HomeworkItem, 'id' | 'completed' | 'status'>) => void;
+  updateHomework: (id: string, updated: Partial<HomeworkItem>) => void;
   toggleHomework: (hwId: string) => void;
+  parentAcknowledgeHomework: (id: string, note?: string) => void;
   deleteHomework: (id: string) => void;
 
   markNotificationRead: (notifId: string) => void;
   markAllNotificationsRead: () => void;
   sendWhatsAppAlert: (event: string, message: string) => Promise<void>;
-  simulateToast: (title: string, message: string, type?: 'success' | 'info' | 'warning' | 'alert') => void;
-  toast: { title: string; message: string; type: 'success' | 'info' | 'warning' | 'alert' } | null;
+  simulateToast: (title: string, message: string, type?: 'success' | 'info' | 'warning' | 'alert', action?: { label: string; onClick: () => void }) => void;
+  toast: { title: string; message: string; type: 'success' | 'info' | 'warning' | 'alert'; action?: { label: string; onClick: () => void } } | null;
   clearToast: () => void;
+  isWhatsAppModalOpen: boolean;
+  setIsWhatsAppModalOpen: (open: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -159,27 +170,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   ]);
 
-  const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' | 'alert' } | null>(null);
+  const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' | 'alert'; action?: { label: string; onClick: () => void } } | null>(null);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('agcs_user', JSON.stringify(user));
-      localStorage.setItem(`agcs_data_${user.phoneNumber}`, JSON.stringify({
-        student,
-        attendance,
-        leaves,
-        fees,
-        homework,
-        comments,
-        notifications
-      }));
-    } else {
-      localStorage.removeItem('agcs_user');
-    }
-  }, [user, student, attendance, leaves, fees, homework, comments, notifications]);
-
-  const simulateToast = (title: string, message: string, type: 'success' | 'info' | 'warning' | 'alert' = 'info') => {
-    setToast({ title, message, type });
+  const simulateToast = (
+    title: string,
+    message: string,
+    type: 'success' | 'info' | 'warning' | 'alert' = 'info',
+    action?: { label: string; onClick: () => void }
+  ) => {
+    setToast({ title, message, type, action });
     if ('vibrate' in navigator) {
       navigator.vibrate(type === 'alert' ? [100, 50, 100] : 80);
     }
@@ -188,24 +188,62 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const clearToast = () => setToast(null);
 
   const sendWhatsAppAlert = async (event: string, message: string) => {
-    const newAlert: WhatsAppAlert = {
-      id: 'wa-' + Date.now(),
-      recipient: WHATSAPP_TARGET,
-      event: event as any,
-      message,
-      timestamp: new Date().toISOString(),
-      status: 'delivered'
-    };
-    setWhatsappAlerts(prev => [newAlert, ...prev]);
+    const cleanPhone = WHATSAPP_TARGET.replace(/[^0-9]/g, '');
+    const defaultWaMeUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 
     try {
-      await fetch('/api/alerts/whatsapp', {
+      const res = await fetch('/api/alerts/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event, message })
+        body: JSON.stringify({ event, message, recipient: WHATSAPP_TARGET })
       });
+      const data = await res.json();
+      const alertItem: WhatsAppAlert = data.alert || {
+        id: 'wa-' + Date.now(),
+        recipient: WHATSAPP_TARGET,
+        event: event as any,
+        message,
+        timestamp: new Date().toISOString(),
+        status: data.automatedSent ? 'delivered' : 'sent',
+        waMeUrl: data.waMeUrl || defaultWaMeUrl,
+        automatedSent: data.automatedSent,
+        deliveryMethod: data.deliveryMethod,
+        deliveryNote: data.deliveryNote
+      };
+
+      setWhatsappAlerts(prev => [alertItem, ...prev]);
+
+      const waUrl = data.waMeUrl || defaultWaMeUrl;
+      simulateToast(
+        data.automatedSent ? 'WhatsApp Alert Pushed' : 'WhatsApp Alert Dispatched',
+        `${message.slice(0, 85)}...`,
+        'alert',
+        {
+          label: 'Open WhatsApp (+917719445029)',
+          onClick: () => window.open(waUrl, '_blank')
+        }
+      );
     } catch {
-      // Offline fallback
+      const offlineAlert: WhatsAppAlert = {
+        id: 'wa-' + Date.now(),
+        recipient: WHATSAPP_TARGET,
+        event: event as any,
+        message,
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+        waMeUrl: defaultWaMeUrl,
+        deliveryMethod: 'wa_me_link'
+      };
+      setWhatsappAlerts(prev => [offlineAlert, ...prev]);
+      simulateToast(
+        'WhatsApp Alert Dispatched',
+        `${message.slice(0, 80)}...`,
+        'alert',
+        {
+          label: 'Open WhatsApp (+917719445029)',
+          onClick: () => window.open(defaultWaMeUrl, '_blank')
+        }
+      );
     }
   };
 
@@ -233,7 +271,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const login = async (phone: string, role: 'parent' | 'admin' = 'parent', customName?: string): Promise<boolean> => {
+  const login = async (phone: string, role: 'parent' | 'admin' = 'parent', customName?: string, customAdmissionNo?: string): Promise<boolean> => {
     const cleanPhone = phone.trim();
     const isStandardPhone = cleanPhone === '+919876543210' || cleanPhone === '9876543210';
 
@@ -260,12 +298,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (e) {
         console.error('Error restoring phone data:', e);
       }
+    } else {
+      // Fetch from backend server database
+      try {
+        const serverRes = await fetch(`/api/data/${encodeURIComponent(cleanPhone)}`);
+        if (serverRes.ok) {
+          const json = await serverRes.json();
+          if (json.data) {
+            if (json.data.student) setStudent(json.data.student);
+            if (json.data.attendance) setAttendance(json.data.attendance);
+            if (json.data.leaves) setLeaves(json.data.leaves);
+            if (json.data.fees) setFees(json.data.fees);
+            if (json.data.homework) setHomework(json.data.homework);
+            if (json.data.comments) setComments(json.data.comments);
+            if (json.data.notifications) setNotifications(json.data.notifications);
+            onboarded = true;
+          }
+        }
+      } catch {
+        // Offline / fallback
+      }
+    }
+
+    if (customAdmissionNo) {
+      setStudent(prev => ({ ...prev, admissionNo: customAdmissionNo }));
     }
 
     const account: UserAccount = {
       phoneNumber: cleanPhone,
       parentName: customName || (role === 'admin' ? 'Principal Office' : 'Jasbir Singh'),
       studentName: student.fullName,
+      admissionNo: customAdmissionNo || student.admissionNo,
       grade: student.grade,
       section: student.section,
       role,
@@ -292,10 +355,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     simulateToast('Logged Out', 'You have been signed out safely.', 'info');
   };
 
-  const completeOnboarding = (data: { studentName: string; grade: string; section: string; parentName: string; emergencyContact: string }) => {
+  const completeOnboarding = (data: {
+    admissionNo: string;
+    studentName: string;
+    grade: string;
+    section: string;
+    parentName: string;
+    emergencyContact: string;
+  }) => {
     if (!user) return;
     const updatedStudent: StudentProfile = {
       ...student,
+      admissionNo: data.admissionNo,
       fullName: data.studentName,
       grade: data.grade,
       section: data.section,
@@ -306,6 +377,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updatedUser: UserAccount = {
       ...user,
+      admissionNo: data.admissionNo,
       parentName: data.parentName,
       studentName: data.studentName,
       grade: data.grade,
@@ -316,11 +388,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setStudent(updatedStudent);
     setUser(updatedUser);
     setCurrentView('app');
-    simulateToast('Profile Ready!', `Welcome to Akal Galaxy Convent School, ${data.studentName}!`, 'success');
+    simulateToast('Profile Ready!', `Welcome to Akal Galaxy Convent School! (Adm No: ${data.admissionNo})`, 'success');
 
     sendWhatsAppAlert(
       'new_device_login',
-      `🎓 New Student Onboarding: ${data.studentName} (Class ${data.grade}-${data.section}) registered by ${data.parentName} (${user.phoneNumber}).`
+      `🎓 New Student Onboarding: ${data.studentName} (Adm No: ${data.admissionNo}, Class ${data.grade}-${data.section}) registered by ${data.parentName} (${user.phoneNumber}).`
     );
   };
 
@@ -575,6 +647,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  const updateHomework = (id: string, updated: Partial<HomeworkItem>) => {
+    setHomework(prev => prev.map(h => (h.id === id ? { ...h, ...updated } : h)));
+    simulateToast('Homework Updated', 'Assignment details updated successfully.', 'success');
+    addNotification('Homework Updated', `Assignment was modified by the subject teacher.`, 'homework');
+  };
+
+  const parentAcknowledgeHomework = (id: string, note?: string) => {
+    setHomework(prev =>
+      prev.map(h =>
+        h.id === id
+          ? {
+              ...h,
+              parentAcknowledged: true,
+              parentSignature: `${user?.parentName || 'Parent'} (${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })})`,
+              ...(note ? { parentNote: note } : {})
+            }
+          : h
+      )
+    );
+    simulateToast('Parent Sign-off Stamped', 'Digital parent verification recorded for child notebook.', 'success');
+  };
+
   const deleteHomework = (id: string) => {
     setHomework(prev => prev.filter(h => h.id !== id));
     simulateToast('Homework Deleted', 'Assignment removed from diary.', 'info');
@@ -626,14 +720,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         addTeacherComment,
         deleteTeacherComment,
         addHomework,
+        updateHomework,
         toggleHomework,
+        parentAcknowledgeHomework,
         deleteHomework,
         markNotificationRead,
         markAllNotificationsRead,
         sendWhatsAppAlert,
         simulateToast,
         toast,
-        clearToast
+        clearToast,
+        isWhatsAppModalOpen,
+        setIsWhatsAppModalOpen
       }}
     >
       {children}

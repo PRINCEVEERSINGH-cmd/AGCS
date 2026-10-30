@@ -11,7 +11,8 @@ import {
   LogOut,
   Sparkles,
   School,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -25,7 +26,9 @@ export const Header: React.FC = () => {
     setCurrentView,
     logout,
     unreadNotificationCount,
-    student
+    student,
+    setIsWhatsAppModalOpen,
+    whatsappAlerts
   } = useApp();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -121,6 +124,21 @@ export const Header: React.FC = () => {
                 )}
               </button>
             )}
+
+            {/* WhatsApp Gateway Quick Button */}
+            <button
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              className="relative p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition cursor-pointer"
+              aria-label="Open WhatsApp alerts (+917719445029)"
+              title="WhatsApp Alerts (+917719445029)"
+            >
+              <MessageSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              {whatsappAlerts.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-emerald-600 text-white text-[9px] font-black border border-white dark:border-slate-900">
+                  {whatsappAlerts.length}
+                </span>
+              )}
+            </button>
 
             {/* Dark Mode Switch */}
             <button

@@ -39,7 +39,11 @@ export const LandingPage: React.FC = () => {
     },
     {
       q: 'Are my child records saved when I log out and log in again?',
-      a: 'Absolutely. Everything is securely tied to your registered 10-digit Indian mobile number (+91). When you log back in via OTP, your child’s attendance, fees, homework diary, and teacher remarks are restored automatically.'
+      a: 'Absolutely. Everything is securely tied to your registered 10-digit Indian mobile number (+91) and verified Admission Number. When you log back in via OTP, your child’s attendance, fees, homework diary, and teacher remarks are restored automatically.'
+    },
+    {
+      q: 'Why does new parent registration demand a School Admission Number?',
+      a: 'To guarantee student safety and records integrity, new parent registration demands the child’s official school Admission Number (found on the school fee booklet or student ID card). This links the parent account exclusively to their authorized student.'
     },
     {
       q: 'What is the WhatsApp security alert rule?',

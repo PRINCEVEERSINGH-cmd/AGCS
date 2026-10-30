@@ -55,15 +55,23 @@ export interface FeeItem {
 
 export interface HomeworkItem {
   id: string;
+  grade: string; // e.g. "8th"
+  section: string; // e.g. "A" or "All"
   subject: string;
   title: string;
   description: string;
+  chapterOrTopic?: string;
   assignedDate: string;
   dueDate: string;
   teacherName: string;
   completed: boolean;
   status: 'pending' | 'submitted' | 'checked';
+  estimatedMinutes?: number;
+  materialsNeeded?: string;
   teacherRemarks?: string;
+  parentAcknowledged?: boolean;
+  parentSignature?: string;
+  parentNote?: string;
 }
 
 export interface ExamSubjectMark {
@@ -130,6 +138,7 @@ export interface UserAccount {
   phoneNumber: string;
   parentName: string;
   studentName: string;
+  admissionNo?: string;
   grade: string;
   section: string;
   role: 'parent' | 'admin';
@@ -140,8 +149,22 @@ export interface UserAccount {
 export interface WhatsAppAlert {
   id: string;
   recipient: string; // e.g. "+917719445029"
-  event: 'new_device_login' | 'fee_due' | 'leave_update' | 'critical_alert';
+  event: 'new_device_login' | 'fee_due' | 'leave_update' | 'critical_alert' | 'admin_broadcast' | 'homework_reminder' | 'gateway_connected';
   message: string;
   timestamp: string;
   status: 'delivered' | 'sent';
+  waMeUrl?: string;
+  automatedSent?: boolean;
+  deliveryMethod?: string;
+  deliveryNote?: string;
+}
+
+export interface WhatsAppConfig {
+  targetPhone: string;
+  callmebotApiKey?: string;
+  customWebhookUrl?: string;
+  autoDispatchEnabled: boolean;
+  lastDispatchStatus?: string;
+  lastDispatchTimestamp?: string;
+  lastDispatchError?: string;
 }

@@ -8,7 +8,9 @@ import {
   AlertCircle,
   Sparkles,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  IdCard,
+  FileCheck2
 } from 'lucide-react';
 
 export const AuthView: React.FC = () => {
@@ -16,6 +18,7 @@ export const AuthView: React.FC = () => {
 
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [phoneNumber, setPhoneNumber] = useState('9876543210');
+  const [admissionNo, setAdmissionNo] = useState('AGCS/2021/842');
   const [otpStep, setOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState(['1', '2', '3', '4']);
   const [generatedDemoOtp, setGeneratedDemoOtp] = useState<string | null>(null);
@@ -25,6 +28,19 @@ export const AuthView: React.FC = () => {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (authMode === 'signup') {
+      const cleanAdm = admissionNo.trim();
+      if (!cleanAdm) {
+        setErrorMsg('Official Student Admission Number is strictly demanded to register a parent account.');
+        return;
+      }
+      if (cleanAdm.length < 3) {
+        setErrorMsg('Please enter a valid school Admission Number (e.g., AGCS/2021/842).');
+        return;
+      }
+    }
+
     const rawDigits = phoneNumber.replace(/\D/g, '');
     if (rawDigits.length < 10) {
       setErrorMsg('Please enter a valid 10-digit Indian mobile number');
@@ -69,7 +85,12 @@ export const AuthView: React.FC = () => {
     const fullPhone = '+91' + phoneNumber.replace(/\D/g, '').slice(-10);
 
     try {
-      await login(fullPhone, 'parent');
+      await login(
+        fullPhone,
+        'parent',
+        undefined,
+        authMode === 'signup' ? admissionNo.trim().toUpperCase() : undefined
+      );
     } catch (err: any) {
       setErrorMsg(err.message || 'Login failed');
     } finally {
@@ -78,9 +99,18 @@ export const AuthView: React.FC = () => {
   };
 
   const handleSocialLogin = async (provider: 'Google' | 'Apple' | 'Facebook') => {
+    if (authMode === 'signup' && !admissionNo.trim()) {
+      setErrorMsg('Official Admission Number is required before linking with ' + provider);
+      return;
+    }
     setIsLoading(true);
     setTimeout(async () => {
-      await login('+919876543210', 'parent', `Demo Parent (${provider})`);
+      await login(
+        '+919876543210',
+        'parent',
+        `Demo Parent (${provider})`,
+        authMode === 'signup' ? admissionNo.trim().toUpperCase() : undefined
+      );
       setIsLoading(false);
     }, 600);
   };
@@ -174,9 +204,50 @@ export const AuthView: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 1: Phone Number Input */}
+        {/* STEP 1: Phone & Admission Number Input */}
         {!otpStep ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
+            {/* Demanded Admission Number on Parent Registration */}
+            {authMode === 'signup' && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="admission-input"
+                    className="block text-xs font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5"
+                  >
+                    <IdCard className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span>Student Admission Number</span>
+                  </label>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-200 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200">
+                    Mandatory
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <input
+                    id="admission-input"
+                    type="text"
+                    value={admissionNo}
+                    onChange={(e) => setAdmissionNo(e.target.value.toUpperCase())}
+                    placeholder="e.g. AGCS/2021/842"
+                    className="w-full px-3.5 py-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-sm font-mono font-bold tracking-wider text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-amber-900/80 dark:text-amber-300/80">
+                  <span>Demanded from student ID card or school fee book.</span>
+                  <button
+                    type="button"
+                    onClick={() => setAdmissionNo('AGCS/2021/842')}
+                    className="font-bold underline hover:text-amber-950 dark:hover:text-amber-100"
+                  >
+                    Demo No
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label
                 htmlFor="mobile-input"
@@ -196,7 +267,7 @@ export const AuthView: React.FC = () => {
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="98765 43210"
                   className="flex-1 px-3.5 py-3 text-sm font-semibold text-slate-900 dark:text-white bg-transparent outline-none"
-                  autoFocus
+                  autoFocus={authMode === 'login'}
                   required
                 />
               </div>

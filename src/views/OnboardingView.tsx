@@ -8,20 +8,23 @@ import {
   CheckCircle,
   ArrowRight,
   ArrowLeft,
+  IdCard,
+  FileCheck2,
   Sparkles
 } from 'lucide-react';
 
 export const OnboardingView: React.FC = () => {
-  const { user, completeOnboarding } = useApp();
+  const { user, student, completeOnboarding } = useApp();
 
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const [formData, setFormData] = useState({
-    studentName: 'Guransh Singh',
-    grade: '8th',
-    section: 'A',
-    parentName: 'Jasbir Singh',
+    admissionNo: user?.admissionNo || student?.admissionNo || 'AGCS/2021/842',
+    studentName: user?.studentName || student?.fullName || 'Guransh Singh',
+    grade: user?.grade || student?.grade || '8th',
+    section: user?.section || student?.section || 'A',
+    parentName: user?.parentName || 'Jasbir Singh',
     relation: 'Father',
     emergencyContact: '+919812345678',
     city: 'Model Town, Punjab'
@@ -31,24 +34,45 @@ export const OnboardingView: React.FC = () => {
 
   const nextStep = () => {
     setError('');
-    if (step === 1 && !formData.studentName.trim()) {
-      setError('Please enter your child’s name.');
+
+    // Step 1: Admission Number Demand Check
+    if (step === 1) {
+      const cleanAdm = formData.admissionNo.trim();
+      if (!cleanAdm) {
+        setError('Please enter your child’s official school Admission Number.');
+        return;
+      }
+      if (cleanAdm.length < 3) {
+        setError('Admission Number is too short. Please check your school fee booklet or ID card.');
+        return;
+      }
+    }
+
+    // Step 2: Student Name Check
+    if (step === 2 && !formData.studentName.trim()) {
+      setError('Please enter your child’s full name as per school records.');
       return;
     }
-    if (step === 3 && !formData.parentName.trim()) {
-      setError('Please enter your name.');
+
+    // Step 4: Parent Name Check
+    if (step === 4 && !formData.parentName.trim()) {
+      setError('Please enter parent/guardian name.');
       return;
     }
-    if (step === 4) {
+
+    // Final Step 5: Completion
+    if (step === 5) {
       completeOnboarding({
-        studentName: formData.studentName,
+        admissionNo: formData.admissionNo.trim().toUpperCase(),
+        studentName: formData.studentName.trim(),
         grade: formData.grade,
         section: formData.section,
-        parentName: `${formData.parentName} (${formData.relation})`,
-        emergencyContact: formData.emergencyContact
+        parentName: `${formData.parentName.trim()} (${formData.relation})`,
+        emergencyContact: formData.emergencyContact.trim()
       });
       return;
     }
+
     setStep(prev => prev + 1);
   };
 
@@ -77,13 +101,61 @@ export const OnboardingView: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs border border-rose-200 dark:border-rose-900">
-            {error}
+          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-xs border border-rose-200 dark:border-rose-900 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* STEP 1: Child's Full Name */}
+        {/* STEP 1: Official Admission Number (DEMANDED ON REGISTRATION) */}
         {step === 1 && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <IdCard className="w-7 h-7" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                  Required School Credential
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white font-heading">
+                What is your child's official Admission Number?
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Akal Galaxy Convent School requires the verified student Admission Number to link fee payments, attendance tracking, and school reports.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="admission-no" className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                School Admission Number
+              </label>
+              <div className="relative">
+                <input
+                  id="admission-no"
+                  type="text"
+                  value={formData.admissionNo}
+                  onChange={(e) => setFormData({ ...formData, admissionNo: e.target.value.toUpperCase() })}
+                  placeholder="e.g. AGCS/2021/842 or AGCS-2026-0814"
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold tracking-wider focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                <FileCheck2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  Find this number printed on your child's school fee booklet, semester report card, or school identity card. (Demo default: <strong>AGCS/2021/842</strong>)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: Child's Full Name */}
+        {step === 2 && (
           <div className="space-y-6 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-400 flex items-center justify-center">
               <User className="w-7 h-7" />
@@ -93,7 +165,7 @@ export const OnboardingView: React.FC = () => {
                 What is your child's full name?
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                This will personalize attendance, report cards, and teacher communication.
+                Matches the official student registration for Admission No. <strong>{formData.admissionNo}</strong>.
               </p>
             </div>
 
@@ -114,8 +186,8 @@ export const OnboardingView: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 2: Grade & Section */}
-        {step === 2 && (
+        {/* STEP 3: Grade & Section */}
+        {step === 3 && (
           <div className="space-y-6 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
               <GraduationCap className="w-7 h-7" />
@@ -169,8 +241,8 @@ export const OnboardingView: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 3: Parent/Guardian Details */}
-        {step === 3 && (
+        {/* STEP 4: Parent/Guardian Details */}
+        {step === 4 && (
           <div className="space-y-6 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <Users className="w-7 h-7" />
@@ -224,8 +296,8 @@ export const OnboardingView: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 4: Emergency Contact & Address */}
-        {step === 4 && (
+        {/* STEP 5: Emergency Contact & Locality */}
+        {step === 5 && (
           <div className="space-y-6 animate-fade-in">
             <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 flex items-center justify-center">
               <MapPin className="w-7 h-7" />
@@ -303,7 +375,7 @@ export const OnboardingView: React.FC = () => {
 
         {/* Persistence guarantee pill */}
         <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 mt-4">
-          🔒 Auto-saved to mobile <strong>{user?.phoneNumber}</strong> for future sessions.
+          🔒 Auto-saved to mobile <strong>{user?.phoneNumber}</strong> with Admission No. <strong>{formData.admissionNo}</strong>.
         </p>
       </div>
     </div>

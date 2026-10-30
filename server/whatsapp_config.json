@@ -1,0 +1,9 @@
+{
+  "targetPhone": "+917719445029",
+  "callmebotApiKey": "",
+  "customWebhookUrl": "",
+  "autoDispatchEnabled": true,
+  "lastDispatchStatus": "ready_wa_me",
+  "lastDispatchTimestamp": "2026-10-28T08:24:29.695Z",
+  "lastDispatchError": ""
+}

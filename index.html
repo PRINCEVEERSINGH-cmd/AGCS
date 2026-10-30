@@ -6,6 +6,41 @@
     <title>AGCS - Akal Galaxy Convent School | Parent & Admin Portal</title>
     <meta name="description" content="Official parent portal and school management app for Akal Galaxy Convent School. Track real-time attendance, fees in INR, homework, exam results, and student leave requests with instant push notifications." />
     
+    <!-- Extension compatibility & fetch setter patch -->
+    <script>
+      (function() {
+        // Intercept and prevent extension-related errors from halting the application
+        window.addEventListener('error', function(event) {
+          if (event && (
+            (event.filename && event.filename.indexOf('chrome-extension://') !== -1) ||
+            (event.message && event.message.indexOf('Cannot set property fetch of #<Window>') !== -1)
+          )) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        // Ensure window.fetch has both a getter and setter so extensions trying to patch it succeed
+        try {
+          var _origFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+          var _currentFetch = _origFetch;
+          Object.defineProperty(window, 'fetch', {
+            configurable: true,
+            enumerable: true,
+            get: function() {
+              return _currentFetch;
+            },
+            set: function(val) {
+              _currentFetch = val;
+            }
+          });
+        } catch (e) {
+          // If property cannot be redefined, silently ignore
+        }
+      })();
+    </script>
+
     <!-- PWA & Mobile Web Capabilities -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#1e3a8a" />
